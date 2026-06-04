@@ -32,7 +32,7 @@ class ProyectoController extends Controller
     {
         Proyecto::create($request->all());
 
-        return redirect('project/')
+        return redirect()->route('project.index')
             ->with('success', 'Proyecto creado satisfactoriamente.');
     }
 
@@ -49,9 +49,9 @@ class ProyectoController extends Controller
      */
     public function edit($id)
     {
-        $proyecto = Proyecto::find($id);
+        $proyecto = Proyecto::findOrFail($id);
 
-        return view("proyectos/update", compact('proyecto'));
+        return view('proyectos.update', compact('proyecto'));
     }
 
     /**
@@ -59,19 +59,24 @@ class ProyectoController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $proyecto = Proyecto::find($id);
+        $proyecto = Proyecto::findOrFail($id);
 
         $proyecto->update($request->all());
 
-        return redirect('project/')
-        ->with('success', 'Proyecto actualizado satisfactoriamente.');
+        return redirect()->route('project.index')
+            ->with('success', 'Proyecto actualizado satisfactoriamente.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Proyecto $proyecto)
+    public function destroy($id)
     {
-        //
+        $proyecto = Proyecto::findOrFail($id);
+
+        $proyecto->delete();
+
+        return redirect()->route('project.index')
+            ->with('success', 'Proyecto eliminado satisfactoriamente.');
     }
 }
