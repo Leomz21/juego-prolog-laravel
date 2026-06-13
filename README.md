@@ -36,6 +36,50 @@ La base de conocimiento en Prolog incluye reglas para:
 * Simular ataques aleatorios del enemigo.
 * Evaluar si el jugador gana, pierde, ambos caen o ambos siguen con vida.
 
+## Capturas del sistema
+
+### Pantalla principal
+
+Vista inicial del simulador RPG, donde se muestran las opciones principales del sistema.
+
+<img src="docs/capturas/01-menu-principal.png" alt="Pantalla principal" width="800">
+
+### Combate individual
+
+Formulario donde se selecciona un personaje, un arma, un enemigo y la cantidad de ataques.
+
+<img src="docs/capturas/02-combate-individual.png" alt="Combate individual" width="800">
+
+### Resultado del combate individual
+
+Resultado generado luego de ejecutar una partida en solitario, mostrando el estado final del combate.
+
+<img src="docs/capturas/03-resultado-combate-individual.png" alt="Resultado del combate individual" width="800">
+
+### Combate grupal
+
+Vista donde se seleccionan varios personajes para atacar a un enemigo en grupo.
+
+<img src="docs/capturas/04-combate-grupal.png" alt="Combate grupal" width="800">
+
+### Misión individual
+
+Validación de una misión para un personaje según sus requisitos de nivel e inventario.
+
+<img src="docs/capturas/05-mision-individual.png" alt="Misión individual" width="800">
+
+### Misión grupal
+
+Validación de una misión en la que participa un grupo de personajes.
+
+<img src="docs/capturas/06-mision-grupal.png" alt="Misión grupal" width="800">
+
+### Estado del personaje
+
+Consulta del estado del personaje, incluyendo clase, nivel, vida, inventario y experiencia acumulada.
+
+<img src="docs/capturas/07-estado-personaje.png" alt="Estado del personaje" width="800">
+
 ## Estructura principal
 
 ```text

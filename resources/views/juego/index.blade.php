@@ -1,477 +1,772 @@
+@php
+    $modoActual = $modo ?? request('modo', 'inicio');
+
+    $modoItems = [
+        ['modo' => 'inicio', 'titulo' => 'Inicio', 'subtitulo' => 'Menú principal', 'icono' => '🏰'],
+        ['modo' => 'solitario', 'titulo' => 'Combate individual', 'subtitulo' => 'Un héroe contra un enemigo', 'icono' => '⚔️'],
+        ['modo' => 'grupo', 'titulo' => 'Combate grupal', 'subtitulo' => 'Forma un equipo de batalla', 'icono' => '🛡️'],
+        ['modo' => 'mision_individual', 'titulo' => 'Misión individual', 'subtitulo' => 'Acepta una aventura en solitario', 'icono' => '📜'],
+        ['modo' => 'mision_grupal', 'titulo' => 'Misión grupal', 'subtitulo' => 'Supera una misión con aliados', 'icono' => '🧭'],
+        ['modo' => 'estado', 'titulo' => 'Ver personaje', 'subtitulo' => 'Consulta la ficha del héroe', 'icono' => '✨'],
+    ];
+
+    $personajeMeta = [
+        'Elara' => [
+            'icono' => '🧝‍♀️',
+            'descripcion' => 'Guerrera élfica del reino',
+            'armas' => ['espada', 'daga'],
+            'inventario' => ['⚔️ Espada', '🗡️ Daga', '🛡️ Escudo', '🧪 Poción'],
+        ],
+        'Kael' => [
+            'icono' => '🧝‍♂️',
+            'descripcion' => 'Arquero élfico del bosque',
+            'armas' => ['arco', 'daga', 'hacha'],
+            'inventario' => ['🏹 Arco', '🗡️ Daga', '🪓 Hacha', '🎯 Flechas'],
+        ],
+        'Rin' => [
+            'icono' => '🧙‍♀️',
+            'descripcion' => 'Maga arcana de la torre',
+            'armas' => ['varita', 'espada'],
+            'inventario' => ['🔮 Varita', '⚔️ Espada', '📘 Libro', '🧪 Poción', '🔱 Amuleto'],
+        ],
+        'Luna' => [
+            'icono' => '🥷',
+            'descripcion' => 'Ninja sigilosa de la luna',
+            'armas' => ['daga', 'arco', 'lanza'],
+            'inventario' => ['🗡️ Daga', '🏹 Arco', '🔱 Lanza', '🧪 Poción', '🔱 Amuleto'],
+        ],
+        'Darius' => [
+            'icono' => '🧔‍♂️',
+            'descripcion' => 'Guardián pesado de hierro',
+            'armas' => ['hacha', 'lanza', 'espada'],
+            'inventario' => ['🪓 Hacha', '🔱 Lanza', '⚔️ Espada', '🛡️ Escudo', '🧪 Poción'],
+        ],
+        'Milo' => [
+            'icono' => '🧑‍🌾',
+            'descripcion' => 'Aventurero novato del valle',
+            'armas' => ['lanza', 'espada', 'arco'],
+            'inventario' => ['🔱 Lanza', '⚔️ Espada', '🏹 Arco', '🧪 Poción', '🗺️ Mapa'],
+        ],
+    ];
+
+    $armaMeta = [
+        'espada' => ['icono' => '⚔️', 'descripcion' => 'Arma equilibrada'],
+        'arco' => ['icono' => '🏹', 'descripcion' => 'Ataque a distancia'],
+        'varita' => ['icono' => '🔮', 'descripcion' => 'Poder mágico'],
+        'daga' => ['icono' => '🗡️', 'descripcion' => 'Rápida y ligera'],
+        'hacha' => ['icono' => '🪓', 'descripcion' => 'Daño pesado'],
+        'lanza' => ['icono' => '🔱', 'descripcion' => 'Gran alcance'],
+    ];
+
+    $enemigoMeta = [
+        'bruja' => ['icono' => '🧹', 'descripcion' => 'Hechicera oscura'],
+        'zombi' => ['icono' => '🧟', 'descripcion' => 'No-muerto resistente'],
+        'vampiro' => ['icono' => '🧛', 'descripcion' => 'Criatura de la noche'],
+        'demonio' => ['icono' => '👹', 'descripcion' => 'Amenaza infernal'],
+        'dragon' => ['icono' => '🐉', 'descripcion' => 'Jefe legendario'],
+    ];
+
+    $misionMeta = [
+        'm1' => ['icono' => '🌲', 'descripcion' => 'Explora un bosque maldito'],
+        'm2' => ['icono' => '🐉', 'descripcion' => 'Adéntrate en la cueva del dragón'],
+        'm3' => ['icono' => '🏛️', 'descripcion' => 'Descifra secretos antiguos'],
+        'm4' => ['icono' => '🏚️', 'descripcion' => 'Investiga ruinas olvidadas'],
+        'm5' => ['icono' => '🏰', 'descripcion' => 'Asalta una fortaleza helada'],
+    ];
+
+    $opcion = function ($key, $value) {
+        if (is_array($value)) {
+            $valor = $value['id'] ?? $value['valor'] ?? $value['nombre'] ?? (is_string($key) ? $key : '');
+            $texto = $value['nombre'] ?? $value['label'] ?? $value['titulo'] ?? $valor;
+        } else {
+            $valor = is_string($key) ? $key : $value;
+            $texto = $value;
+        }
+
+        return [(string) $valor, (string) $texto];
+    };
+
+    $grupoOld = array_map('strval', old('grupo', []));
+
+    $resultadoPartes = [];
+    if (!empty($resultado)) {
+        $resultadoPartes = preg_split('/\.\s+/', trim($resultado), -1, PREG_SPLIT_NO_EMPTY);
+    }
+
+    $iconoResultado = function ($texto) {
+        $t = mb_strtolower($texto);
+
+        if (str_contains($t, 'vida inicial del enemigo') || str_contains($t, 'vida final del enemigo') || str_contains($t, 'enemigo era')) {
+            return '🖤';
+        }
+
+        if (str_contains($t, 'vida inicial del jugador') || str_contains($t, 'vida final del jugador') || str_contains($t, 'vida inicial del grupo') || str_contains($t, 'vida final del grupo')) {
+            return '❤️';
+        }
+
+        if (str_contains($t, 'danio') || str_contains($t, 'daño')) {
+            return '💥';
+        }
+
+        if (str_contains($t, 'ataques')) {
+            return '🎯';
+        }
+
+        if (str_contains($t, 'victoria')) {
+            return '🏆';
+        }
+
+        if (str_contains($t, 'derrota') || str_contains($t, 'no puede') || str_contains($t, 'falta')) {
+            return '⚠️';
+        }
+
+        if (str_contains($t, 'xp') || str_contains($t, 'nivel')) {
+            return '✨';
+        }
+
+        return '📌';
+    };
+@endphp
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Simulador Juego</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crónicas de Aetheria</title>
 
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
-
-    <style>
-        body {
-            min-height: 100vh;
-            background:
-                radial-gradient(circle at top left, #bae6fd 0, transparent 35%),
-                radial-gradient(circle at top right, #fbcfe8 0, transparent 35%),
-                linear-gradient(135deg, #f8fafc, #eef2ff);
-            color: #172033;
-            font-family: Arial, sans-serif;
-        }
-
-        .contenedor {
-            max-width: 1180px;
-            margin: 35px auto;
-        }
-
-        .hero {
-            background: linear-gradient(135deg, #2563eb, #7c3aed, #db2777);
-            color: white;
-            padding: 34px;
-            border-radius: 28px;
-            box-shadow: 0 20px 45px rgba(79, 70, 229, 0.28);
-            margin-bottom: 28px;
-        }
-
-        .hero h1 {
-            font-weight: 900;
-            margin-bottom: 8px;
-            letter-spacing: 0.5px;
-        }
-
-        .hero p {
-            margin: 0;
-            font-size: 1.08rem;
-            opacity: 0.95;
-        }
-
-        .btn-volver {
-            display: inline-block;
-            margin-bottom: 18px;
-            color: #2563eb;
-            font-weight: 800;
-            text-decoration: none;
-        }
-
-        .btn-volver:hover {
-            color: #1d4ed8;
-            text-decoration: underline;
-        }
-
-        .modo-card {
-            background: white;
-            border-radius: 24px;
-            padding: 26px;
-            height: 100%;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 16px 35px rgba(15, 23, 42, 0.10);
-            transition: 0.2s ease;
-            text-decoration: none;
-            display: block;
-            color: #172033;
-        }
-
-        .modo-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 22px 45px rgba(15, 23, 42, 0.16);
-            color: #172033;
-        }
-
-        .modo-card h2 {
-            font-weight: 900;
-            font-size: 1.45rem;
-            margin-bottom: 10px;
-        }
-
-        .modo-card p {
-            color: #4b5563;
-            margin-bottom: 0;
-        }
-
-        .azul h2 { color: #2563eb; }
-        .morado h2 { color: #7c3aed; }
-        .naranja h2 { color: #ea580c; }
-        .verde h2 { color: #16a34a; }
-        .rosado h2 { color: #db2777; }
-
-        .panel-juego {
-            background: white;
-            border-radius: 26px;
-            padding: 28px;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-        }
-
-        .panel-juego h2 {
-            font-weight: 900;
-            margin-bottom: 8px;
-        }
-
-        .descripcion {
-            color: #4b5563;
-            margin-bottom: 24px;
-        }
-
-        .form-label {
-            font-weight: 800;
-            color: #111827;
-        }
-
-        .form-select,
-        .form-control {
-            border: 2px solid #d1d5db;
-            border-radius: 14px;
-            padding: 11px 13px;
-            background: #f9fafb;
-        }
-
-        .form-select:focus,
-        .form-control:focus {
-            border-color: #7c3aed;
-            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
-        }
-
-        .btn-jugar {
-            border: none;
-            border-radius: 14px;
-            color: white;
-            font-weight: 900;
-            padding: 13px;
-            width: 100%;
-            margin-top: 10px;
-            font-size: 1.02rem;
-        }
-
-        .btn-azul { background: linear-gradient(135deg, #2563eb, #06b6d4); }
-        .btn-morado { background: linear-gradient(135deg, #7c3aed, #db2777); }
-        .btn-naranja { background: linear-gradient(135deg, #ea580c, #f59e0b); }
-        .btn-verde { background: linear-gradient(135deg, #16a34a, #22c55e); }
-        .btn-rosado { background: linear-gradient(135deg, #db2777, #f97316); }
-
-        .btn-jugar:hover {
-            opacity: 0.92;
-            color: white;
-        }
-
-        .resultado {
-            background: #ffffff;
-            border: 3px solid #22c55e;
-            border-left: 12px solid #22c55e;
-            border-radius: 22px;
-            padding: 24px;
-            margin-top: 26px;
-            box-shadow: 0 18px 38px rgba(34, 197, 94, 0.18);
-        }
-
-        .resultado h3 {
-            color: #15803d;
-            font-weight: 900;
-            margin-bottom: 12px;
-        }
-
-        .resultado p {
-            font-size: 1.05rem;
-            line-height: 1.7;
-            margin: 0;
-        }
-
-        .grupo-check {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-
-        .grupo-check label {
-            background: #f9fafb;
-            border: 2px solid #e5e7eb;
-            border-radius: 14px;
-            padding: 11px 12px;
-            cursor: pointer;
-            font-weight: 700;
-        }
-
-        .grupo-check label:hover {
-            border-color: #7c3aed;
-            background: #f5f3ff;
-        }
-
-        .grupo-check input {
-            margin-right: 8px;
-        }
-
-        .nota {
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            color: #1e3a8a;
-            border-radius: 18px;
-            padding: 16px;
-            margin-top: 20px;
-            font-weight: 600;
-        }
-    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-
-<body>
-<div class="contenedor px-3">
-    <div class="hero">
-        <h1>Simulador Juego</h1>
-
-        @if ($modo === 'inicio')
-            <p>Escoge un modo de juego para comenzar la aventura.</p>
-        @else
-            <p>Configura tu partida y presiona Jugar para ver el resultado.</p>
-        @endif
-    </div>
-
-    @if ($modo === 'inicio')
-        <div class="row g-4">
-            <div class="col-md-6 col-lg-4">
-                <a class="modo-card azul" href="{{ route('juego.index', ['modo' => 'solitario']) }}">
-                    <h2>Partida en solitario</h2>
-                    <p>Elige un personaje, un arma, un enemigo y la cantidad de ataques.</p>
-                </a>
-            </div>
-
-            <div class="col-md-6 col-lg-4">
-                <a class="modo-card morado" href="{{ route('juego.index', ['modo' => 'grupo']) }}">
-                    <h2>Partida en grupo</h2>
-                    <p>Forma un equipo de personajes y enfrenta a un enemigo en conjunto.</p>
-                </a>
-            </div>
-
-            <div class="col-md-6 col-lg-4">
-                <a class="modo-card naranja" href="{{ route('juego.index', ['modo' => 'mision_individual']) }}">
-                    <h2>Mision individual</h2>
-                    <p>Selecciona un personaje y revisa si puede entrar a una mision.</p>
-                </a>
-            </div>
-
-            <div class="col-md-6 col-lg-4">
-                <a class="modo-card rosado" href="{{ route('juego.index', ['modo' => 'mision_grupal']) }}">
-                    <h2>Mision grupal</h2>
-                    <p>Elige un grupo y comprueba si cumple los requisitos de la mision.</p>
-                </a>
-            </div>
-
-            <div class="col-md-6 col-lg-4">
-                <a class="modo-card verde" href="{{ route('juego.index', ['modo' => 'estado']) }}">
-                    <h2>Estado del jugador</h2>
-                    <p>Consulta nivel, vida, clase, inventario y XP acumulada.</p>
-                </a>
-            </div>
-        </div>
-
-        <div class="nota">
-            Cada modo usa reglas diferentes del juego: combate individual, combate grupal, misiones, inventario, vida y XP.
-        </div>
-    @else
-        <a class="btn-volver" href="{{ route('juego.index') }}">← Volver a modos de juego</a>
-
-        <div class="panel-juego">
-            @if ($modo === 'solitario')
-                <h2 style="color:#2563eb;">Partida en solitario</h2>
-                <p class="descripcion">
-                    Selecciona un personaje, el arma que usara, el enemigo y cuantas veces atacara.
-                    El enemigo respondera con una cantidad aleatoria de ataques.
+<body class="rpg-body">
+    <main class="rpg-shell">
+        <section class="rpg-hero">
+            <div class="rpg-hero-content">
+                <span class="rpg-badge">Reino de Aetheria</span>
+                <h1>Crónicas de Aetheria</h1>
+                <p>
+                    Elige tu camino, reúne aliados, acepta misiones y enfréntate
+                    a criaturas que amenazan el reino.
                 </p>
+            </div>
 
-                <form method="POST" action="{{ route('juego.jugar') }}">
-                    @csrf
-                    <input type="hidden" name="tipo" value="combate_individual">
+            <div class="rpg-hero-orb">
+                <span>☽</span>
+            </div>
+        </section>
 
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Personaje</label>
-                            <select name="personaje" class="form-select" required>
-                                @foreach ($personajes as $personaje)
-                                    <option value="{{ $personaje }}">{{ $personaje }}</option>
-                                @endforeach
-                            </select>
+        <section class="rpg-layout">
+            <aside class="rpg-sidebar">
+                <h2>Modos de juego</h2>
+
+                <nav class="rpg-mode-list">
+                    @foreach ($modoItems as $item)
+                        <a
+                            href="{{ route('juego.index', ['modo' => $item['modo']]) }}"
+                            class="rpg-mode-card {{ $modoActual === $item['modo'] ? 'is-active' : '' }}"
+                        >
+                            <span class="rpg-mode-icon">{{ $item['icono'] }}</span>
+                            <span>
+                                <strong>{{ $item['titulo'] }}</strong>
+                                <small>{{ $item['subtitulo'] }}</small>
+                            </span>
+                        </a>
+                    @endforeach
+                </nav>
+
+                <div class="rpg-system-card">
+                    <h3>Estado del reino</h3>
+                    <p>Las puertas de Aetheria están abiertas. Elige una aventura para comenzar.</p>
+                    <div class="rpg-status-line">
+                        <span></span>
+                        <strong>Aventura disponible</strong>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="rpg-stage">
+                @if ($errors->any())
+                    <div class="rpg-alert">
+                        <strong>La acción no pudo ejecutarse:</strong>
+                        <ul>
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                @if ($modoActual === 'inicio')
+                    <div class="rpg-panel rpg-intro-panel">
+                        <div>
+                            <span class="rpg-panel-kicker">Menú principal</span>
+                            <h2>Selecciona tu aventura</h2>
+                            <p>
+                                Explora el reino de Aetheria, prepara a tus héroes y elige entre
+                                combates, misiones o consulta de personajes.
+                            </p>
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Arma</label>
-                            <select name="arma" class="form-select" required>
-                                @foreach ($armas as $id => $nombre)
-                                    <option value="{{ $id }}">{{ $nombre }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                        <div class="rpg-home-grid">
+                            <a href="{{ route('juego.index', ['modo' => 'combate']) }}" class="rpg-feature-card">
+                                <span>⚔️</span>
+                                <h3>Entrar en combate</h3>
+                                <p>Elige si quieres luchar en solitario o formar un equipo.</p>
+                            </a>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Enemigo</label>
-                            <select name="enemigo" class="form-select" required>
-                                @foreach ($enemigos as $id => $nombre)
-                                    <option value="{{ $id }}">{{ $nombre }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                            <a href="{{ route('juego.index', ['modo' => 'misiones']) }}" class="rpg-feature-card">
+                                <span>📜</span>
+                                <h3>Aceptar misión</h3>
+                                <p>Escoge entre aventuras individuales o expediciones grupales.</p>
+                            </a>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Ataques del jugador</label>
-                            <input type="number" name="ataques" class="form-control" min="1" max="10" value="1" required>
+                            <a href="{{ route('juego.index', ['modo' => 'estado']) }}" class="rpg-feature-card">
+                                <span>✨</span>
+                                <h3>Ver personaje</h3>
+                                <p>Consulta la ficha de tus héroes antes de iniciar la aventura.</p>
+                            </a>
                         </div>
                     </div>
+                @endif
 
-                    <button class="btn btn-jugar btn-azul">Jugar</button>
-                </form>
-            @endif
+                @if ($modoActual === 'combate')
+                    <div class="rpg-panel rpg-intro-panel">
+                        <div>
+                            <span class="rpg-panel-kicker">Zona de combate</span>
+                            <h2>Elige el tipo de batalla</h2>
+                            <p>
+                                Puedes enfrentarte a un enemigo con un solo héroe o formar un equipo
+                                para una batalla grupal.
+                            </p>
+                        </div>
 
-            @if ($modo === 'grupo')
-                <h2 style="color:#7c3aed;">Partida en grupo</h2>
-                <p class="descripcion">
-                    Forma un equipo. Cada personaje usara su mejor arma disponible contra el enemigo.
-                </p>
+                        <div class="rpg-home-grid two-columns">
+                            <a href="{{ route('juego.index', ['modo' => 'solitario']) }}" class="rpg-feature-card">
+                                <span>⚔️</span>
+                                <h3>Combate individual</h3>
+                                <p>Un héroe, un arma, un enemigo y una estrategia de ataque.</p>
+                            </a>
 
-                <form method="POST" action="{{ route('juego.jugar') }}">
-                    @csrf
-                    <input type="hidden" name="tipo" value="combate_grupal">
+                            <a href="{{ route('juego.index', ['modo' => 'grupo']) }}" class="rpg-feature-card">
+                                <span>🛡️</span>
+                                <h3>Combate grupal</h3>
+                                <p>Forma un equipo y enfrenta una amenaza en conjunto.</p>
+                            </a>
+                        </div>
+                    </div>
+                @endif
 
-                    <div class="mb-3">
-                        <label class="form-label">Grupo</label>
-                        <div class="grupo-check">
-                            @foreach ($personajes as $personaje)
+                @if ($modoActual === 'misiones')
+                    <div class="rpg-panel rpg-intro-panel">
+                        <div>
+                            <span class="rpg-panel-kicker">Tablero de misiones</span>
+                            <h2>Elige el tipo de misión</h2>
+                            <p>
+                                Acepta una aventura en solitario o reúne aliados para superar una misión grupal.
+                            </p>
+                        </div>
+
+                        <div class="rpg-home-grid two-columns">
+                            <a href="{{ route('juego.index', ['modo' => 'mision_individual']) }}" class="rpg-feature-card">
+                                <span>📜</span>
+                                <h3>Misión individual</h3>
+                                <p>Envía a un personaje a cumplir una aventura por su cuenta.</p>
+                            </a>
+
+                            <a href="{{ route('juego.index', ['modo' => 'mision_grupal']) }}" class="rpg-feature-card">
+                                <span>🧭</span>
+                                <h3>Misión grupal</h3>
+                                <p>Forma un equipo y comprueba si pueden completar la misión.</p>
+                            </a>
+                        </div>
+                    </div>
+                @endif
+
+                @if ($modoActual === 'solitario')
+                    <div class="rpg-panel">
+                        <div class="rpg-panel-header">
+                            <span class="rpg-panel-kicker">Arena de combate</span>
+                            <h2>Combate individual</h2>
+                            <p>Selecciona un héroe, un arma de su inventario, un enemigo y define tu estrategia.</p>
+                        </div>
+
+                        <form method="POST" action="{{ route('juego.jugar') }}" class="rpg-form" data-combat-form="individual">
+                            @csrf
+                            <input type="hidden" name="tipo" value="combate_individual">
+
+                            <div class="rpg-form-section">
+                                <h3>Elige tu héroe</h3>
+                                <div class="rpg-choice-grid">
+                                    @foreach ($personajes as $key => $value)
+                                        @php
+                                            [$valor, $texto] = $opcion($key, $value);
+                                            $meta = $personajeMeta[$valor] ?? ['icono' => '🧑', 'descripcion' => 'Aventurero', 'armas' => [], 'inventario' => []];
+                                        @endphp
+
+                                        <div>
+                                            <input
+                                                class="rpg-choice-input"
+                                                type="radio"
+                                                name="personaje"
+                                                id="solitario-personaje-{{ $loop->index }}"
+                                                value="{{ $valor }}"
+                                                data-inventory="{{ implode(',', $meta['armas']) }}"
+                                                required
+                                                @checked(old('personaje') === $valor)
+                                            >
+                                            <label class="rpg-choice-card" for="solitario-personaje-{{ $loop->index }}">
+                                                <span class="rpg-choice-icon">{{ $meta['icono'] }}</span>
+                                                <strong>{{ $texto }}</strong>
+                                                <small>{{ $meta['descripcion'] }}</small>
+                                                <span class="rpg-inventory-title">Inventario:</span>
+                                                <span class="rpg-inventory-list">
+                                                    @foreach ($meta['inventario'] as $item)
+                                                        <em>{{ $item }}</em>
+                                                    @endforeach
+                                                </span>
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <div class="rpg-form-section">
+                                <h3>Elige tu arma</h3>
+                                <p class="rpg-muted">Al seleccionar un héroe se resaltarán las armas que puede usar.</p>
+
+                                <div class="rpg-choice-grid">
+                                    @foreach ($armas as $key => $value)
+                                        @php
+                                            [$valor, $texto] = $opcion($key, $value);
+                                            $meta = $armaMeta[$valor] ?? ['icono' => '🗡️', 'descripcion' => 'Arma disponible'];
+                                        @endphp
+
+                                        <div class="rpg-weapon-option" data-weapon-option="{{ $valor }}">
+                                            <input
+                                                class="rpg-choice-input"
+                                                type="radio"
+                                                name="arma"
+                                                id="solitario-arma-{{ $loop->index }}"
+                                                value="{{ $valor }}"
+                                                data-weapon-id="{{ $valor }}"
+                                                required
+                                                @checked(old('arma') === $valor)
+                                            >
+                                            <label class="rpg-choice-card" for="solitario-arma-{{ $loop->index }}">
+                                                <span class="rpg-choice-icon">{{ $meta['icono'] }}</span>
+                                                <strong>{{ $texto }}</strong>
+                                                <small>{{ $meta['descripcion'] }}</small>
+                                                <span class="rpg-weapon-state">Disponible según inventario</span>
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <div class="rpg-form-section">
+                                <h3>Elige tu enemigo</h3>
+                                <div class="rpg-choice-grid">
+                                    @foreach ($enemigos as $key => $value)
+                                        @php
+                                            [$valor, $texto] = $opcion($key, $value);
+                                            $meta = $enemigoMeta[$valor] ?? ['icono' => '👹', 'descripcion' => 'Amenaza desconocida'];
+                                        @endphp
+
+                                        <div>
+                                            <input
+                                                class="rpg-choice-input"
+                                                type="radio"
+                                                name="enemigo"
+                                                id="solitario-enemigo-{{ $loop->index }}"
+                                                value="{{ $valor }}"
+                                                required
+                                                @checked(old('enemigo') === $valor)
+                                            >
+                                            <label class="rpg-choice-card enemy" for="solitario-enemigo-{{ $loop->index }}">
+                                                <span class="rpg-choice-icon">{{ $meta['icono'] }}</span>
+                                                <strong>{{ $texto }}</strong>
+                                                <small>{{ $meta['descripcion'] }}</small>
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <div class="rpg-strategy-row">
                                 <label>
-                                    <input type="checkbox" name="grupo[]" value="{{ $personaje }}">
-                                    {{ $personaje }}
+                                    <span>Número de ataques</span>
+                                    <input type="number" name="ataques" min="1" max="10" value="{{ old('ataques', 1) }}" required>
                                 </label>
-                            @endforeach
-                        </div>
+
+                                <button type="submit" class="rpg-main-button" data-loading-label="Preparando combate...">
+                                    Iniciar combate
+                                </button>
+                            </div>
+                        </form>
                     </div>
+                @endif
 
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Enemigo</label>
-                            <select name="enemigo" class="form-select" required>
-                                @foreach ($enemigos as $id => $nombre)
-                                    <option value="{{ $id }}">{{ $nombre }}</option>
-                                @endforeach
-                            </select>
+                @if ($modoActual === 'grupo')
+                    <div class="rpg-panel">
+                        <div class="rpg-panel-header">
+                            <span class="rpg-panel-kicker">Batalla cooperativa</span>
+                            <h2>Combate grupal</h2>
+                            <p>Forma un equipo, selecciona un enemigo y entra al campo de batalla.</p>
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Ataques por jugador</label>
-                            <input type="number" name="ataques" class="form-control" min="1" max="10" value="1" required>
-                        </div>
-                    </div>
+                        <form method="POST" action="{{ route('juego.jugar') }}" class="rpg-form rpg-team-form">
+                            @csrf
+                            <input type="hidden" name="tipo" value="combate_grupal">
 
-                    <button class="btn btn-jugar btn-morado">Jugar</button>
-                </form>
-            @endif
+                            <div class="rpg-form-section">
+                                <h3>Forma tu equipo</h3>
+                                <p class="rpg-muted">Selecciona uno o varios personajes.</p>
 
-            @if ($modo === 'mision_individual')
-                <h2 style="color:#ea580c;">Mision individual</h2>
-                <p class="descripcion">
-                    Elige un personaje y una mision. El juego revisara nivel, requisitos, inventario y XP.
-                </p>
+                                <div class="rpg-choice-grid">
+                                    @foreach ($personajes as $key => $value)
+                                        @php
+                                            [$valor, $texto] = $opcion($key, $value);
+                                            $meta = $personajeMeta[$valor] ?? ['icono' => '🧑', 'descripcion' => 'Aventurero', 'inventario' => []];
+                                        @endphp
 
-                <form method="POST" action="{{ route('juego.jugar') }}">
-                    @csrf
-                    <input type="hidden" name="tipo" value="mision_individual">
+                                        <div>
+                                            <input
+                                                class="rpg-choice-input"
+                                                type="checkbox"
+                                                name="grupo[]"
+                                                id="grupo-personaje-{{ $loop->index }}"
+                                                value="{{ $valor }}"
+                                                @checked(in_array($valor, $grupoOld, true))
+                                            >
+                                            <label class="rpg-choice-card" for="grupo-personaje-{{ $loop->index }}">
+                                                <span class="rpg-choice-icon">{{ $meta['icono'] }}</span>
+                                                <strong>{{ $texto }}</strong>
+                                                <small>{{ $meta['descripcion'] }}</small>
+                                                <span class="rpg-inventory-title">Inventario:</span>
+                                                <span class="rpg-inventory-list">
+                                                    @foreach ($meta['inventario'] as $item)
+                                                        <em>{{ $item }}</em>
+                                                    @endforeach
+                                                </span>
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
 
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Personaje</label>
-                            <select name="personaje" class="form-select" required>
-                                @foreach ($personajes as $personaje)
-                                    <option value="{{ $personaje }}">{{ $personaje }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                                <div class="rpg-team-counter" data-team-counter>
+                                    Equipo seleccionado: 0
+                                </div>
+                            </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Mision</label>
-                            <select name="mision" class="form-select" required>
-                                @foreach ($misiones as $id => $nombre)
-                                    <option value="{{ $id }}">{{ $nombre }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
+                            <div class="rpg-form-section">
+                                <h3>Elige tu enemigo</h3>
+                                <div class="rpg-choice-grid">
+                                    @foreach ($enemigos as $key => $value)
+                                        @php
+                                            [$valor, $texto] = $opcion($key, $value);
+                                            $meta = $enemigoMeta[$valor] ?? ['icono' => '👹', 'descripcion' => 'Amenaza desconocida'];
+                                        @endphp
 
-                    <button class="btn btn-jugar btn-naranja">Jugar</button>
-                </form>
-            @endif
+                                        <div>
+                                            <input
+                                                class="rpg-choice-input"
+                                                type="radio"
+                                                name="enemigo"
+                                                id="grupo-enemigo-{{ $loop->index }}"
+                                                value="{{ $valor }}"
+                                                required
+                                                @checked(old('enemigo') === $valor)
+                                            >
+                                            <label class="rpg-choice-card enemy" for="grupo-enemigo-{{ $loop->index }}">
+                                                <span class="rpg-choice-icon">{{ $meta['icono'] }}</span>
+                                                <strong>{{ $texto }}</strong>
+                                                <small>{{ $meta['descripcion'] }}</small>
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
 
-            @if ($modo === 'mision_grupal')
-                <h2 style="color:#db2777;">Mision grupal</h2>
-                <p class="descripcion">
-                    Selecciona un grupo y una mision. El juego revisara XP acumulada e inventario conjunto.
-                </p>
-
-                <form method="POST" action="{{ route('juego.jugar') }}">
-                    @csrf
-                    <input type="hidden" name="tipo" value="mision_grupal">
-
-                    <div class="mb-3">
-                        <label class="form-label">Grupo</label>
-                        <div class="grupo-check">
-                            @foreach ($personajes as $personaje)
+                            <div class="rpg-strategy-row">
                                 <label>
-                                    <input type="checkbox" name="grupo[]" value="{{ $personaje }}">
-                                    {{ $personaje }}
+                                    <span>Ataques por jugador</span>
+                                    <input type="number" name="ataques" min="1" max="10" value="{{ old('ataques', 1) }}" required>
                                 </label>
+
+                                <button type="submit" class="rpg-main-button" data-loading-label="Preparando batalla...">
+                                    Iniciar batalla grupal
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                @endif
+
+                @if ($modoActual === 'mision_individual')
+                    <div class="rpg-panel">
+                        <div class="rpg-panel-header">
+                            <span class="rpg-panel-kicker">Tablero de aventuras</span>
+                            <h2>Misión individual</h2>
+                            <p>Elige un personaje y una misión para iniciar una nueva aventura.</p>
+                        </div>
+
+                        <form method="POST" action="{{ route('juego.jugar') }}" class="rpg-form">
+                            @csrf
+                            <input type="hidden" name="tipo" value="mision_individual">
+
+                            <div class="rpg-form-section">
+                                <h3>Elige tu aventurero</h3>
+                                <div class="rpg-choice-grid">
+                                    @foreach ($personajes as $key => $value)
+                                        @php
+                                            [$valor, $texto] = $opcion($key, $value);
+                                            $meta = $personajeMeta[$valor] ?? ['icono' => '🧑', 'descripcion' => 'Aventurero', 'inventario' => []];
+                                        @endphp
+
+                                        <div>
+                                            <input
+                                                class="rpg-choice-input"
+                                                type="radio"
+                                                name="personaje"
+                                                id="mision-personaje-{{ $loop->index }}"
+                                                value="{{ $valor }}"
+                                                required
+                                                @checked(old('personaje') === $valor)
+                                            >
+                                            <label class="rpg-choice-card" for="mision-personaje-{{ $loop->index }}">
+                                                <span class="rpg-choice-icon">{{ $meta['icono'] }}</span>
+                                                <strong>{{ $texto }}</strong>
+                                                <small>{{ $meta['descripcion'] }}</small>
+                                                <span class="rpg-inventory-title">Inventario:</span>
+                                                <span class="rpg-inventory-list">
+                                                    @foreach ($meta['inventario'] as $item)
+                                                        <em>{{ $item }}</em>
+                                                    @endforeach
+                                                </span>
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <div class="rpg-form-section">
+                                <h3>Elige una misión</h3>
+                                <div class="rpg-mission-grid">
+                                    @foreach ($misiones as $key => $value)
+                                        @php
+                                            [$valor, $texto] = $opcion($key, $value);
+                                            $meta = $misionMeta[$valor] ?? ['icono' => '📜', 'descripcion' => 'Aventura disponible'];
+                                        @endphp
+
+                                        <div>
+                                            <input
+                                                class="rpg-choice-input"
+                                                type="radio"
+                                                name="mision"
+                                                id="mision-individual-{{ $loop->index }}"
+                                                value="{{ $valor }}"
+                                                required
+                                                @checked(old('mision') === $valor)
+                                            >
+                                            <label class="rpg-mission-card" for="mision-individual-{{ $loop->index }}">
+                                                <span>{{ $meta['icono'] }}</span>
+                                                <strong>{{ $texto }}</strong>
+                                                <small>{{ $meta['descripcion'] }}</small>
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <button type="submit" class="rpg-main-button" data-loading-label="Iniciando misión...">
+                                Aceptar misión
+                            </button>
+                        </form>
+                    </div>
+                @endif
+
+                @if ($modoActual === 'mision_grupal')
+                    <div class="rpg-panel">
+                        <div class="rpg-panel-header">
+                            <span class="rpg-panel-kicker">Expedición</span>
+                            <h2>Misión grupal</h2>
+                            <p>Forma un equipo y selecciona una misión para comenzar la expedición.</p>
+                        </div>
+
+                        <form method="POST" action="{{ route('juego.jugar') }}" class="rpg-form rpg-team-form">
+                            @csrf
+                            <input type="hidden" name="tipo" value="mision_grupal">
+
+                            <div class="rpg-form-section">
+                                <h3>Forma tu equipo</h3>
+                                <div class="rpg-choice-grid">
+                                    @foreach ($personajes as $key => $value)
+                                        @php
+                                            [$valor, $texto] = $opcion($key, $value);
+                                            $meta = $personajeMeta[$valor] ?? ['icono' => '🧑', 'descripcion' => 'Aventurero', 'inventario' => []];
+                                        @endphp
+
+                                        <div>
+                                            <input
+                                                class="rpg-choice-input"
+                                                type="checkbox"
+                                                name="grupo[]"
+                                                id="mision-grupo-personaje-{{ $loop->index }}"
+                                                value="{{ $valor }}"
+                                                @checked(in_array($valor, $grupoOld, true))
+                                            >
+                                            <label class="rpg-choice-card" for="mision-grupo-personaje-{{ $loop->index }}">
+                                                <span class="rpg-choice-icon">{{ $meta['icono'] }}</span>
+                                                <strong>{{ $texto }}</strong>
+                                                <small>{{ $meta['descripcion'] }}</small>
+                                                <span class="rpg-inventory-title">Inventario:</span>
+                                                <span class="rpg-inventory-list">
+                                                    @foreach ($meta['inventario'] as $item)
+                                                        <em>{{ $item }}</em>
+                                                    @endforeach
+                                                </span>
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                <div class="rpg-team-counter" data-team-counter>
+                                    Equipo seleccionado: 0
+                                </div>
+                            </div>
+
+                            <div class="rpg-form-section">
+                                <h3>Elige una misión</h3>
+                                <div class="rpg-mission-grid">
+                                    @foreach ($misiones as $key => $value)
+                                        @php
+                                            [$valor, $texto] = $opcion($key, $value);
+                                            $meta = $misionMeta[$valor] ?? ['icono' => '📜', 'descripcion' => 'Aventura disponible'];
+                                        @endphp
+
+                                        <div>
+                                            <input
+                                                class="rpg-choice-input"
+                                                type="radio"
+                                                name="mision"
+                                                id="mision-grupal-{{ $loop->index }}"
+                                                value="{{ $valor }}"
+                                                required
+                                                @checked(old('mision') === $valor)
+                                            >
+                                            <label class="rpg-mission-card" for="mision-grupal-{{ $loop->index }}">
+                                                <span>{{ $meta['icono'] }}</span>
+                                                <strong>{{ $texto }}</strong>
+                                                <small>{{ $meta['descripcion'] }}</small>
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <button type="submit" class="rpg-main-button" data-loading-label="Iniciando expedición...">
+                                Iniciar expedición
+                            </button>
+                        </form>
+                    </div>
+                @endif
+
+                @if ($modoActual === 'estado')
+                    <div class="rpg-panel">
+                        <div class="rpg-panel-header">
+                            <span class="rpg-panel-kicker">Ficha de personaje</span>
+                            <h2>Ver personaje</h2>
+                            <p>Consulta la ficha del personaje antes de enviarlo a la aventura.</p>
+                        </div>
+
+                        <form method="POST" action="{{ route('juego.jugar') }}" class="rpg-form">
+                            @csrf
+                            <input type="hidden" name="tipo" value="perfil">
+
+                            <div class="rpg-form-section">
+                                <h3>Elige un personaje</h3>
+                                <div class="rpg-choice-grid">
+                                    @foreach ($personajes as $key => $value)
+                                        @php
+                                            [$valor, $texto] = $opcion($key, $value);
+                                            $meta = $personajeMeta[$valor] ?? ['icono' => '🧑', 'descripcion' => 'Aventurero', 'inventario' => []];
+                                        @endphp
+
+                                        <div>
+                                            <input
+                                                class="rpg-choice-input"
+                                                type="radio"
+                                                name="personaje"
+                                                id="estado-personaje-{{ $loop->index }}"
+                                                value="{{ $valor }}"
+                                                required
+                                                @checked(old('personaje') === $valor)
+                                            >
+                                            <label class="rpg-character-card" for="estado-personaje-{{ $loop->index }}">
+                                                <span class="rpg-character-avatar">{{ $meta['icono'] }}</span>
+                                                <strong>{{ $texto }}</strong>
+                                                <small>{{ $meta['descripcion'] }}</small>
+
+                                                <div class="rpg-stat">
+                                                    <span>Vida</span>
+                                                    <div><i style="width: 82%"></i></div>
+                                                </div>
+
+                                                <div class="rpg-stat">
+                                                    <span>Energía</span>
+                                                    <div><i style="width: 68%"></i></div>
+                                                </div>
+
+                                                <span class="rpg-inventory-title">Inventario:</span>
+                                                <span class="rpg-inventory-list">
+                                                    @foreach ($meta['inventario'] as $item)
+                                                        <em>{{ $item }}</em>
+                                                    @endforeach
+                                                </span>
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <button type="submit" class="rpg-main-button" data-loading-label="Consultando ficha...">
+                                Consultar ficha
+                            </button>
+                        </form>
+                    </div>
+                @endif
+
+                @if (!empty($resultado))
+                    <section class="rpg-result" id="resultado-aventura">
+                        <div class="rpg-result-header">
+                            <span>📖</span>
+                            <div>
+                                <h2>Bitácora de aventura</h2>
+                                <p>Resultado de tu acción</p>
+                            </div>
+                        </div>
+
+                        <div class="rpg-result-grid">
+                            @foreach ($resultadoPartes as $parte)
+                                @php
+                                    $parte = trim($parte);
+                                    $parte = str_ends_with($parte, '.') ? $parte : $parte . '.';
+                                @endphp
+
+                                <article class="rpg-result-card">
+                                    <span>{{ $iconoResultado($parte) }}</span>
+                                    <p>{{ $parte }}</p>
+                                </article>
                             @endforeach
                         </div>
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Mision</label>
-                        <select name="mision" class="form-select" required>
-                            @foreach ($misiones as $id => $nombre)
-                                <option value="{{ $id }}">{{ $nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <button class="btn btn-jugar btn-rosado">Jugar</button>
-                </form>
-            @endif
-
-            @if ($modo === 'estado')
-                <h2 style="color:#16a34a;">Estado del jugador</h2>
-                <p class="descripcion">
-                    Consulta la informacion actual del personaje: nivel, vida, clase, XP e inventario.
-                </p>
-
-                <form method="POST" action="{{ route('juego.jugar') }}">
-                    @csrf
-                    <input type="hidden" name="tipo" value="perfil">
-
-                    <div class="mb-3">
-                        <label class="form-label">Personaje</label>
-                        <select name="personaje" class="form-select" required>
-                            @foreach ($personajes as $personaje)
-                                <option value="{{ $personaje }}">{{ $personaje }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <button class="btn btn-jugar btn-verde">Jugar</button>
-                </form>
-            @endif
-        </div>
-
-        @if (!empty($resultado))
-            <div class="resultado">
-                <h3>Resultado</h3>
-                <p>{{ $resultado }}</p>
-            </div>
-        @endif
-    @endif
-
-    @if ($errors->any())
-        <div class="alert alert-danger mt-4">
-            <strong>Hay errores:</strong>
-            <ul class="mb-0">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-</div>
+                        <details class="rpg-raw-result">
+                            <summary>Ver narración completa</summary>
+                            <pre>{{ $resultado }}</pre>
+                        </details>
+                    </section>
+                @endif
+            </section>
+        </section>
+    </main>
 </body>
 </html>

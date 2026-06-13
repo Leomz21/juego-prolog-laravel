@@ -22,14 +22,16 @@ clase('Milo', aventurero).
 
 % =========================================================
 % INVENTARIO
+% Ahora cada personaje tiene más de un arma posible.
+% Las demás herramientas se conservan para misiones.
 % =========================================================
 
-inventario('Elara', [espada, escudo, pocion]).
-inventario('Kael', [arco, flechas]).
-inventario('Rin', [varita, libro_hechizos, pocion, amuleto]).
-inventario('Luna', [daga, pocion, amuleto]).
-inventario('Darius', [hacha, escudo, pocion]).
-inventario('Milo', [lanza, pocion, mapa]).
+inventario('Elara', [espada, daga, escudo, pocion]).
+inventario('Kael', [arco, daga, hacha, flechas]).
+inventario('Rin', [varita, espada, libro_hechizos, pocion, amuleto]).
+inventario('Luna', [daga, arco, lanza, pocion, amuleto]).
+inventario('Darius', [hacha, lanza, espada, escudo, pocion]).
+inventario('Milo', [lanza, espada, arco, pocion, mapa]).
 
 % =========================================================
 % ARMAS
@@ -55,7 +57,6 @@ enemigo(demonio, maxima, 220, 65).
 enemigo(dragon, maxima, 260, 80).
 
 % Algunas armas hacen danio extra contra ciertos enemigos.
-
 debilidad(bruja, varita).
 debilidad(zombi, espada).
 debilidad(vampiro, lanza).
@@ -76,12 +77,9 @@ mision(m5, 'Fortaleza del Norte', 8, 260).
 
 requiere(m2, escudo).
 requiere(m2, pocion).
-
 requiere(m3, libro_hechizos).
 requiere(m3, pocion).
-
 requiere(m4, mapa).
-
 requiere(m5, escudo).
 requiere(m5, amuleto).
 requiere(m5, pocion).
@@ -104,7 +102,7 @@ vida_final(VidaInicial, Danio, VidaFinal) :-
     (
         Temporal < 0
         -> VidaFinal = 0
-        ;  VidaFinal = Temporal
+        ; VidaFinal = Temporal
     ).
 
 % =========================================================
@@ -162,9 +160,9 @@ perfil_personaje(Personaje, Mensaje) :-
         Personaje, 'es de clase', Clase,
         'nivel', Nivel,
         'con', Vida, 'puntos de vida.',
-        'Estado:', Estado,
-        '. XP acumulada:', XP,
-        '. Inventario:', InventarioTexto
+        'Estado:', Estado, '.',
+        'XP acumulada:', XP, '.',
+        'Inventario:', InventarioTexto
     ], ' ', Mensaje).
 
 % =========================================================
@@ -175,9 +173,10 @@ cumple_requisitos(Personaje, MisionID) :-
     forall(requiere(MisionID, Objeto), tiene_objeto(Personaje, Objeto)).
 
 objetos_faltantes(Personaje, MisionID, Faltantes) :-
-    findall(Objeto,
-        (requiere(MisionID, Objeto), \+ tiene_objeto(Personaje, Objeto)),
-        Faltantes).
+    findall(Objeto, (
+        requiere(MisionID, Objeto),
+        \+ tiene_objeto(Personaje, Objeto)
+    ), Faltantes).
 
 puede_aceptar(Personaje, MisionID) :-
     personaje(Personaje, Nivel, _),
@@ -199,9 +198,9 @@ mision_individual(Personaje, MisionID, Mensaje) :-
     xp_personaje(Personaje, XPActual),
     XPNuevo is XPActual + XP,
     atomic_list_concat([
-        Personaje, 'puede entrar a', Nombre,
-        '. Dificultad:', Dificultad,
-        '. Recompensa:', XP, 'XP.',
+        Personaje, 'puede entrar a', Nombre, '.',
+        'Dificultad:', Dificultad, '.',
+        'Recompensa:', XP, 'XP.',
         'XP total estimada despues de la mision:', XPNuevo
     ], ' ', Mensaje).
 
@@ -236,9 +235,10 @@ cumple_requisitos_grupo(Grupo, MisionID) :-
     forall(requiere(MisionID, Objeto), alguien_tiene(Grupo, Objeto)).
 
 objetos_faltantes_grupo(Grupo, MisionID, Faltantes) :-
-    findall(Objeto,
-        (requiere(MisionID, Objeto), \+ alguien_tiene(Grupo, Objeto)),
-        Faltantes).
+    findall(Objeto, (
+        requiere(MisionID, Objeto),
+        \+ alguien_tiene(Grupo, Objeto)
+    ), Faltantes).
 
 grupo_no_vacio([_|_]).
 
@@ -258,7 +258,8 @@ mision_grupal(Grupo, MisionID, Mensaje) :-
     atomic_list_concat([
         'El grupo formado por', GrupoTexto,
         'no puede entrar a', Nombre,
-        'porque necesita', XPRequerida, 'XP acumulada y solo tiene', XPGrupo
+        'porque necesita', XPRequerida,
+        'XP acumulada y solo tiene', XPGrupo
     ], ' ', Mensaje).
 
 mision_grupal(Grupo, MisionID, Mensaje) :-
@@ -282,9 +283,9 @@ mision_grupal(Grupo, MisionID, Mensaje) :-
     atomic_list_concat(Grupo, ', ', GrupoTexto),
     atomic_list_concat([
         'El grupo formado por', GrupoTexto,
-        'puede completar', Nombre,
-        '. XP actual del grupo:', XPGrupo,
-        '. Recompensa:', XP, 'XP.',
+        'puede completar', Nombre, '.',
+        'XP actual del grupo:', XPGrupo, '.',
+        'Recompensa:', XP, 'XP.',
         'XP total estimada:', XPNuevo
     ], ' ', Mensaje).
 
@@ -297,7 +298,7 @@ danio_arma_contra(Arma, Enemigo, DanioFinal) :-
     (
         debilidad(Enemigo, Arma)
         -> DanioFinal is DanioBase + 20
-        ;  DanioFinal is DanioBase
+        ; DanioFinal is DanioBase
     ).
 
 resultado_combate(VidaJugadorFinal, VidaEnemigoFinal, Resultado) :-
@@ -333,7 +334,10 @@ combate_individual(Personaje, Arma, _, _, Mensaje) :-
     personaje(Personaje, _, _),
     arma(Arma, _),
     \+ tiene_objeto(Personaje, Arma),
-    atomic_list_concat([Personaje, 'no puede usar', Arma, 'porque no esta en su inventario.'], ' ', Mensaje).
+    atomic_list_concat([
+        Personaje, 'no puede usar', Arma,
+        'porque no esta en su inventario.'
+    ], ' ', Mensaje).
 
 combate_individual(Personaje, Arma, Enemigo, _, Mensaje) :-
     personaje(Personaje, _, _),
@@ -354,20 +358,18 @@ combate_individual(Personaje, Arma, Enemigo, AtaquesJugador, Mensaje) :-
     vida_final(VidaJugador, DanioEnemigoTotal, VidaJugadorFinal),
     resultado_combate(VidaJugadorFinal, VidaEnemigoFinal, Resultado),
     atomic_list_concat([
-        Personaje, 'uso', Arma,
-        'contra', Enemigo,
-        '. Ataques del jugador:', AtaquesJugador,
-        '. Danio por ataque del jugador:', DanioJugadorPorAtaque,
-        '. Danio total causado al enemigo:', DanioJugadorTotal,
-        '. Vida inicial del enemigo:', VidaEnemigo,
-        '. Vida final del enemigo:', VidaEnemigoFinal,
-        '. El enemigo era de riesgo', Riesgo,
-        'y ataco', AtaquesEnemigo, 'veces.',
-        'Danio por ataque del enemigo:', DanioEnemigo,
-        '. Danio total recibido:', DanioEnemigoTotal,
-        '. Vida inicial del jugador:', VidaJugador,
-        '. Vida final del jugador:', VidaJugadorFinal,
-        '.', Resultado
+        Personaje, 'uso', Arma, 'contra', Enemigo, '.',
+        'Ataques del jugador:', AtaquesJugador, '.',
+        'Danio por ataque del jugador:', DanioJugadorPorAtaque, '.',
+        'Danio total causado al enemigo:', DanioJugadorTotal, '.',
+        'Vida inicial del enemigo:', VidaEnemigo, '.',
+        'Vida final del enemigo:', VidaEnemigoFinal, '.',
+        'El enemigo era de riesgo', Riesgo, 'y ataco', AtaquesEnemigo, 'veces.',
+        'Danio por ataque del enemigo:', DanioEnemigo, '.',
+        'Danio total recibido:', DanioEnemigoTotal, '.',
+        'Vida inicial del jugador:', VidaJugador, '.',
+        'Vida final del jugador:', VidaJugadorFinal, '.',
+        Resultado
     ], ' ', Mensaje).
 
 % =========================================================
@@ -375,13 +377,11 @@ combate_individual(Personaje, Arma, Enemigo, AtaquesJugador, Mensaje) :-
 % =========================================================
 
 mejor_arma(Personaje, Arma, Danio) :-
-    findall(D-A,
-        (
-            tiene_objeto(Personaje, A),
-            arma(A, _),
-            arma(A, D)
-        ),
-        Lista),
+    findall(D-A, (
+        tiene_objeto(Personaje, A),
+        arma(A, _),
+        arma(A, D)
+    ), Lista),
     keysort(Lista, Ordenada),
     last(Ordenada, Danio-Arma).
 
@@ -405,7 +405,10 @@ armas_grupo([], []).
 
 armas_grupo([Personaje | Resto], [Texto | RestoTextos]) :-
     mejor_arma(Personaje, Arma, Danio),
-    atomic_list_concat([Personaje, 'usa', Arma, 'con', Danio, 'de danio base'], ' ', Texto),
+    atomic_list_concat([
+        Personaje, 'usa', Arma,
+        'con', Danio, 'de danio base'
+    ], ' ', Texto),
     armas_grupo(Resto, RestoTextos).
 
 combate_grupal(Grupo, _, _, Mensaje) :-
@@ -430,18 +433,16 @@ combate_grupal(Grupo, Enemigo, AtaquesPorJugador, Mensaje) :-
     resultado_combate(VidaGrupoFinal, VidaEnemigoFinal, Resultado),
     atomic_list_concat(Grupo, ', ', GrupoTexto),
     atomic_list_concat([
-        'El grupo formado por', GrupoTexto,
-        'enfrento a', Enemigo,
-        '. Armas usadas:', ArmasTexto,
-        '. Ataques por jugador:', AtaquesPorJugador,
-        '. Danio total del grupo:', DanioGrupoTotal,
-        '. Vida inicial del enemigo:', VidaEnemigo,
-        '. Vida final del enemigo:', VidaEnemigoFinal,
-        '. El enemigo era de riesgo', Riesgo,
-        'y ataco', AtaquesEnemigo, 'veces.',
-        'Danio por ataque del enemigo:', DanioEnemigo,
-        '. Danio total recibido por el grupo:', DanioEnemigoTotal,
-        '. Vida inicial del grupo:', VidaGrupo,
-        '. Vida final del grupo:', VidaGrupoFinal,
-        '.', Resultado
+        'El grupo formado por', GrupoTexto, 'enfrento a', Enemigo, '.',
+        'Armas usadas:', ArmasTexto, '.',
+        'Ataques por jugador:', AtaquesPorJugador, '.',
+        'Danio total del grupo:', DanioGrupoTotal, '.',
+        'Vida inicial del enemigo:', VidaEnemigo, '.',
+        'Vida final del enemigo:', VidaEnemigoFinal, '.',
+        'El enemigo era de riesgo', Riesgo, 'y ataco', AtaquesEnemigo, 'veces.',
+        'Danio por ataque del enemigo:', DanioEnemigo, '.',
+        'Danio total recibido por el grupo:', DanioEnemigoTotal, '.',
+        'Vida inicial del grupo:', VidaGrupo, '.',
+        'Vida final del grupo:', VidaGrupoFinal, '.',
+        Resultado
     ], ' ', Mensaje).
